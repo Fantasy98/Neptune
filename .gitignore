@@ -1,0 +1,5 @@
+#ignore the large data set in scratch
+/tensor
+/models
+/fig
+/pred
