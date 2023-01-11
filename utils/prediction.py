@@ -91,7 +91,7 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device):
     print(f"Prediction array saved, shape is {Pred_array.shape}")
 
     y_array = np.array(targets)
-    np.save(os.path.join(save_path,"y.npy"),Pred_array)
+    np.save(os.path.join(save_path,"y.npy"),y_array)
     print(f"Ground Truth array saved, shape is {y_array.shape}")
             
 

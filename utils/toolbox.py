@@ -1,6 +1,9 @@
 
 
 import torch
+#############################################
+# File and Dir
+#############################################
 def NameIt(y_plus,var,target,normalized):
     """
     Give a format name of y+, var and target in string
@@ -42,7 +45,9 @@ def Name_Checkpoint(y_plus,var,target,normalized,EPOCH):
     model_dir = os.path.join(date_loc,denotes)
      
     return  model_dir
-    
+#############################################
+# Data Processing
+############################################# 
 def periodic_padding(input:torch.Tensor,padding:int):
     """
     Function for computing perodic padding for each snapshot 
@@ -60,6 +65,11 @@ def periodic_padding(input:torch.Tensor,padding:int):
         M1 = torch.cat([M1[:,:,-padding:,:],M1,M1[:,:,0:padding,:]],dim=-2)
         return M1
 
+
+
+#############################################
+# Model Training
+#############################################
 class EarlyStopping():
     def __init__(self,patience=5,tol=0):
         """

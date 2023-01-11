@@ -1,7 +1,7 @@
 import torch 
 import os
 from utils.prediction import Test_Eval,pred_save_dir
-from utils.plots import Plot_2D_snapshots,Loss_Plot,Scatter_Plot,Save_Plot_dir
+from utils.plots import Plot_2D_snapshots,Loss_Plot,Scatter_Plot,PSD_single,Save_Plot_dir
 import numpy as np
 import matplotlib.pyplot as plt 
 device = ("cuda:2" if torch.cuda.is_available() else "cpu")
@@ -17,7 +17,7 @@ target=['pr0.025_flux']
 normalized=False
 y_plus=30
 EPOCH = 100
-Test_Eval(model,EPOCH,y_plus,var,target,normalized,device)
+# Test_Eval(model,EPOCH,y_plus,var,target,normalized,device)
 pred_dir = pred_save_dir(EPOCH,y_plus,var,target,normalized)
 
 train_loss = checkpoint["loss"]
@@ -36,6 +36,9 @@ Scatter_Plot(glob_error,rms_error,fluct_error,
 
 preds_array = np.load(os.path.join(pred_dir,"pred.npy"))
 target_array=np.load(os.path.join(pred_dir,"y.npy"))
+
+PSD_single(target_array,preds_array,os.path.join(fig_dir,"PSD"))
+
 
 pred_mean = np.mean(preds_array,axis=0)
 target_mean = np.mean(target_array,axis=0)

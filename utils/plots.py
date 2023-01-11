@@ -1,5 +1,22 @@
 import matplotlib.pyplot as plt
 import numpy as np 
+
+def Save_Plot_dir(EPOCH,y_plus,var,target,normalized):
+    from utils.toolbox import NameIt
+    import os
+    """
+    return the path of saving pred result 
+    """
+    pred_path = "/storage3/yuning/thesis/fig"
+    name = NameIt(y_plus,var,target,normalized)
+    name = name + "_EPOCH="+str(EPOCH)
+    save_path = os.path.join(pred_path,name)
+    if os.path.exists(save_path) is False:
+        print(f"Making Dir {save_path}")
+        os.makedirs(save_path)
+
+    return save_path
+
 def Plot_2D_snapshots(avg,save_dir):
     if avg.shape != (256,256):
         
@@ -49,6 +66,61 @@ def Plot_2D_snapshots(avg,save_dir):
         plt.savefig(save_dir,bbox_inches="tight")
 
 
+def PSD_single(y,pred,save_dir):
+    import numpy as np 
+    import matplotlib.pyplot as plt
+    import matplotlib        as mpl
+    Nx = 256 ; Nz  = 256 ;Lx  = 12 ;Lz  = 6
+    # dx=Lx/Nx ;dz=Lz/Nz
+    x_range=np.linspace(1,Nx,Nx)
+    z_range=np.linspace(1,Nz,Nz)
+    # x=dx*x_range;z=dz*z_range;[xx,zz]=np.meshgrid(x,z)
+    dkx = 2*np.pi/Lx
+    dkz = 2*np.pi/Lz
+    kx = dkx * np.append(x_range[:Nx//2], -x_range[Nx//2:0:-1])
+    kz = dkz * np.append(z_range[:Nz//2], -z_range[Nz//2:0:-1])
+    [kkx,kkz]=np.meshgrid(kx,kz)
+    kkx_norm= np.sqrt(kkx**2)
+    kkz_norm = np.sqrt(kkz**2)
+
+    Re_Tau = 395 #Direct from simulation
+    Re = 10400 #Direct from simulation
+    nu = 1/Re #Kinematic viscosity
+    u_tau = Re_Tau*nu
+
+    # calculating wavelength in plus units 
+    Lambda_x = (2*np.pi/kkx_norm)*u_tau/nu
+    Lambda_z = (2*np.pi/kkz_norm)*u_tau/nu
+
+    Theta_fluc_targ=y-np.mean(y)
+    Theta_fluc_pred=pred-np.mean(pred)
+
+    fourier_image_targ = np.fft.fftn(Theta_fluc_targ)
+    fourier_image_pred = np.fft.fftn(Theta_fluc_pred)
+
+    fourier_amplitudes_targ = np.mean(np.abs(fourier_image_targ)**2,axis=0)
+    fourier_amplitudes_pred = np.mean(np.abs(fourier_image_pred)**2,axis=0)
+
+    pct10=0.1*np.max(fourier_amplitudes_targ*kkx*kkz)
+    pct50=0.5*np.max(fourier_amplitudes_targ*kkx*kkz)
+    pct90=0.9*np.max(fourier_amplitudes_targ*kkx*kkz)
+    pct100=np.max(fourier_amplitudes_targ*kkx*kkz)
+
+    cmap = mpl.cm.Greys(np.linspace(0,1,20))
+    cmap = mpl.colors.ListedColormap(cmap[5:,:-1])
+    fig,ax=plt.subplots(1,1,dpi=1000)
+    CP=plt.contourf(Lambda_x,Lambda_z,fourier_amplitudes_targ*kkx*kkz,[pct10,pct50,pct90,pct100],cmap=cmap)
+    CS=plt.contour(Lambda_x,Lambda_z,fourier_amplitudes_pred*kkx*kkz,[pct10,pct50,pct90,pct100],colors='orange',linestyles='solid')
+    plt.xscale('log')
+    plt.yscale('log')
+    ax.set_ylabel(r'$\lambda_{z}^+$')
+    ax.set_xlabel(r'$\lambda_{x}^+$')
+    ax.set_title(r'$k_x\ k_z\ \phi_{q_w}$')
+    plt.savefig(save_dir,bbox_inches="tight")
+
+
+
+
 def Loss_Plot(train_loss,val_loss,save_dir):
     print("INFO: Ploting Loss vs Epoch")
     import matplotlib.pyplot as plt 
@@ -66,6 +138,7 @@ def Scatter_Plot(glob_error,rms_error,fluct_error,EPOCH,y_plus,var,target,normal
     import os
     import numpy as np
     import matplotlib.pyplot as plt
+    from utils.toolbox import NameIt
     """
     Plot scatter of all loss for each snap shot
     input: glob_error, rms_error,fluct_error should be numpy arrary for each error
@@ -79,30 +152,17 @@ def Scatter_Plot(glob_error,rms_error,fluct_error,EPOCH,y_plus,var,target,normal
     print(f"The mean fluct error is {mean_fluct}")
     fig_dir = Save_Plot_dir(EPOCH,y_plus,var,target,normalized)
     scatter_fig = os.path.join(fig_dir,"Error Scatter")
-
-    font_dict = {"fontsize":16}
+    name = NameIt(y_plus,var,target,normalized)
+    font_dict = {"fontsize":17}
     plt.figure(31,figsize=(16,9))
     plt.plot(glob_error,"rx",markersize= 5,label="Glob Error = {:.2f}%".format(mean_glob))
     plt.plot(rms_error,"bo",markersize= 5,label="RMS Error = {:.2f}%".format(mean_rms))
     plt.plot(fluct_error,"gs",markersize= 5,label="Fluct Error = {:.2f}%".format(mean_fluct))
+    plt.title(name,fontdict=font_dict)
     plt.xlabel("Snapshots",fontdict=font_dict)
-    plt.ylabel("Error",fontdict=font_dict)
+    plt.ylabel("Error (%)",fontdict=font_dict)
     plt.grid()
     plt.legend(fontsize=18)
     plt.savefig(scatter_fig,bbox_inches='tight')
 
-def Save_Plot_dir(EPOCH,y_plus,var,target,normalized):
-    from utils.toolbox import NameIt
-    import os
-    """
-    return the path of saving pred result 
-    """
-    pred_path = "/storage3/yuning/thesis/fig"
-    name = NameIt(y_plus,var,target,normalized)
-    name = name + "_EPOCH="+str(EPOCH)
-    save_path = os.path.join(pred_path,name)
-    if os.path.exists(save_path) is False:
-        print(f"Making Dir {save_path}")
-        os.makedirs(save_path)
 
-    return save_path
