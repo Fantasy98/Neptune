@@ -40,10 +40,10 @@ optimizer= torch.optim.Adam(model.parameters(),lr= 1e-3,eps=1e-7)
 loss_fn = nn.MSELoss(reduction="mean")
 
 ################
-var=['u_vel',"v_vel","w_vel","pr0.025"]
-target=['pr0.025_flux']
+var=['u_vel',"v_vel","w_vel","pr0.2"]
+target=['pr0.2_flux']
 normalized=False
-y_plus=30
+y_plus=50
 save_types= ["train","test","validation"]
 root_path = "/storage3/yuning/thesis/tensor/"
 
@@ -100,7 +100,7 @@ check_point = {"model":model,
                 }
 
 
-model_dir = Name_Checkpoint(y_plus,var,target,EPOCH)
+model_dir = Name_Checkpoint(y_plus,var,target,normalized,EPOCH)
 print(f"The model will be saved to:\n {model_dir}")
 torch.save(check_point,model_dir)
 print("Check point has been saved !")
