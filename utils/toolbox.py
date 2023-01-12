@@ -19,7 +19,7 @@ def NameIt(y_plus,var,target,normalized):
         denotes = 'y_plus_'+str(y_plus)+"-VARS-"+var_string+"-TARGETS-"+target_string+"normalized"
     return denotes
 
-def Name_Checkpoint(y_plus,var,target,normalized,EPOCH):
+def Name_Checkpoint(y_plus,var,target,normalized,EPOCH,model_name:None):
     import os
     from datetime import datetime
     """
@@ -36,8 +36,10 @@ def Name_Checkpoint(y_plus,var,target,normalized,EPOCH):
     root_dir  = "/storage3/yuning/thesis/models"
 
     name = NameIt(y_plus,var,target,normalized)
-    denotes = name+"_EPOCH="+str(EPOCH)+".pt"
-    
+    if model_name is None:
+        denotes = name+"_EPOCH="+str(EPOCH)+".pt"
+    else:
+        denotes = name+model_name+"_EPOCH="+str(EPOCH)+".pt"
     date_loc=os.path.join(root_dir,str(datetime.now().date()))
     if os.path.exists(date_loc) is False:
         os.mkdir(date_loc)
