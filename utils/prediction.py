@@ -1,7 +1,7 @@
 # package for predicting the results
 
 
-def pred_save_dir(EPOCH,y_plus,var,target,normalized):
+def pred_save_dir(EPOCH,y_plus,var,target,normalized,model_name):
     from utils.toolbox import NameIt
     import os
     """
@@ -9,7 +9,7 @@ def pred_save_dir(EPOCH,y_plus,var,target,normalized):
     """
     pred_path = "/storage3/yuning/thesis/pred"
     name = NameIt(y_plus,var,target,normalized)
-    name = name + "_EPOCH="+str(EPOCH)
+    name = name + "_" + model_name + "_EPOCH="+str(EPOCH)
     save_path = os.path.join(pred_path,name)
     if os.path.exists(save_path) is False:
         print(f"Making Dir {save_path}")
@@ -17,7 +17,7 @@ def pred_save_dir(EPOCH,y_plus,var,target,normalized):
 
     return save_path
 
-def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device):
+def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device,model_name:None):
     import torch
     import os
     from torch.utils.data import DataLoader
@@ -36,6 +36,7 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device):
         target: list of targets
         normalized: boolean normalized or not 
         device: name of cuda device to use
+        model_name: name of model 
     output:
         A dirct of all results
         Glob_error: np array of all glob error
@@ -71,7 +72,7 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device):
             preds.append(pred)
             targets.append(y)
     
-    save_path = pred_save_dir(EPOCH,y_plus,var,target,normalized)
+    save_path = pred_save_dir(EPOCH,y_plus,var,target,normalized,model_name)
     
     Glob_error = np.array(GlobErrors)
     np.save(os.path.join(save_path,"glob.npy"),Glob_error)

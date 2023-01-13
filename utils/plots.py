@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np 
 
-def Save_Plot_dir(EPOCH,y_plus,var,target,normalized):
+def Save_Plot_dir(EPOCH,y_plus,var,target,normalized,model_name:None):
     from utils.toolbox import NameIt
     import os
     """
@@ -9,7 +9,7 @@ def Save_Plot_dir(EPOCH,y_plus,var,target,normalized):
     """
     pred_path = "/storage3/yuning/thesis/fig"
     name = NameIt(y_plus,var,target,normalized)
-    name = name + "_EPOCH="+str(EPOCH)
+    name = name + "_" + model_name + "_EPOCH="+str(EPOCH)
     save_path = os.path.join(pred_path,name)
     if os.path.exists(save_path) is False:
         print(f"Making Dir {save_path}")
@@ -134,7 +134,7 @@ def Loss_Plot(train_loss,val_loss,save_dir):
     plt.legend(fontsize = 18    )
     plt.savefig(save_dir,bbox_inches="tight")
 
-def Scatter_Plot(glob_error,rms_error,fluct_error,EPOCH,y_plus,var,target,normalized):
+def Scatter_Plot(glob_error,rms_error,fluct_error,EPOCH,y_plus,var,target,normalized,model_name):
     import os
     import numpy as np
     import matplotlib.pyplot as plt
@@ -150,7 +150,7 @@ def Scatter_Plot(glob_error,rms_error,fluct_error,EPOCH,y_plus,var,target,normal
     print(f"The mean glob error is {mean_glob}")
     print(f"The mean rms error is {mean_rms}")
     print(f"The mean fluct error is {mean_fluct}")
-    fig_dir = Save_Plot_dir(EPOCH,y_plus,var,target,normalized)
+    fig_dir = Save_Plot_dir(EPOCH,y_plus,var,target,normalized,model_name)
     scatter_fig = os.path.join(fig_dir,"Error Scatter")
     name = NameIt(y_plus,var,target,normalized)
     font_dict = {"fontsize":17}

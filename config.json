@@ -1,0 +1,1 @@
+{"batch_size": 6, "device": "cuda:2", "device_ids": [2, 3], "lr": 0.001}

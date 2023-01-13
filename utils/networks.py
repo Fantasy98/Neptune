@@ -1,5 +1,6 @@
 import torch 
 from torch import nn 
+
 import matplotlib.pyplot as plt 
 
 def Init_Conv(m):
@@ -452,7 +453,7 @@ class FCN_ResNet(nn.Module):
         self.padding = padding
 
         self.conv1 = nn.Conv2d(in_channels=self.channels,out_channels=64,kernel_size=5)
-        self.resconv1 = nn.Conv2d(in_channels=self.channels,out_channels=64,kernel_size=5)
+        self.resconv1 = nn.Conv2d(in_channels=self.channels,out_channels=64,kernel_size=self.knsize)
         
         self.conv2 = nn.Conv2d(in_channels=64,out_channels=128,kernel_size=self.knsize)
         self.resconv2 = nn.Conv2d(in_channels=64,out_channels=128,kernel_size=self.knsize)
@@ -607,3 +608,236 @@ class FCN_ResNet_NoSkip(nn.Module):
                 self.padding:-self.padding]
         
         return out
+
+class FCN_ResNet_Skip(nn.Module):
+    def __init__(self, height,width,channels,knsize,padding) -> None:
+        super(FCN_ResNet_Skip,self).__init__()
+        self.height,self.width,self.channels = height,width,channels
+        self.knsize = knsize
+        self.padding = padding
+
+        self.conv1 = nn.Conv2d(in_channels=self.channels,out_channels=64,kernel_size=5)
+        self.conv2 = nn.Conv2d(in_channels=64,out_channels=128,kernel_size=self.knsize)
+        self.conv3 = nn.Conv2d(in_channels=128,out_channels=256,kernel_size=self.knsize)
+        self.conv4 = nn.Conv2d(in_channels=256,out_channels=256,kernel_size=self.knsize)
+        
+        self.Tconv1 = nn.ConvTranspose2d(in_channels=256*2,out_channels=128,kernel_size=self.knsize)
+        self.Tconv2 = nn.ConvTranspose2d(in_channels=256+128,out_channels=256,kernel_size=self.knsize)
+        self.Tconv3 = nn.ConvTranspose2d(in_channels=128+256,out_channels=256,kernel_size=self.knsize)
+        self.Tconv4 = nn.ConvTranspose2d(in_channels=64+256,out_channels=64,kernel_size=5)
+        
+        self.out = nn.ConvTranspose2d(in_channels=64+self.channels,out_channels=1,kernel_size=1)
+
+        self.initial_norm = nn.BatchNorm2d(self.channels,eps=1e-3,momentum=0.99)
+        self.bn1 = nn.BatchNorm2d(64,eps=1e-3,momentum=0.99)  
+        self.bn2 = nn.BatchNorm2d(128,eps=1e-3,momentum=0.99)  
+        self.bn3 = nn.BatchNorm2d(256,eps=1e-3,momentum=0.99)  
+        self.bn4 = nn.BatchNorm2d(256,eps=1e-3,momentum=0.99)  
+        
+        self.tbn1 = nn.BatchNorm2d(128,eps=1e-3,momentum=0.99)  
+        self.tbn2 = nn.BatchNorm2d(256,eps=1e-3,momentum=0.99)  
+        self.tbn3 = nn.BatchNorm2d(256,eps=1e-3,momentum=0.99)  
+        self.tbn4 = nn.BatchNorm2d(64,eps=1e-3,momentum=0.99) 
+    
+        self.elu =nn.ELU()
+        # self.down = nn.MaxPool2d(2)
+
+    def forward(self, inputs):
+        pad = periodic_padding(inputs,self.padding)
+        padn = self.initial_norm(pad)
+        cnn1 = (self.conv1(padn))
+        batch1 =(self.bn1(cnn1))
+        add1 = self.elu(torch.add(batch1,cnn1))
+        
+        cnn2 = self.conv2(add1)
+        batch2= self.bn2(cnn2)
+        add2 = self.elu(torch.add(batch2,cnn2))
+        
+        cnn3 = self.conv3(add2)
+        batch3 = self.bn3(cnn3)
+        add3 = self.elu(torch.add(batch3,cnn3)) 
+
+        cnn4 = self.conv4(add3)
+        batch4 = self.bn4(cnn4)
+        add4 = self.elu(torch.add(batch4,cnn4))
+        
+        tcov1 = self.Tconv1(torch.cat([cnn4,add4],dim=1))
+        batch5 = self.tbn1(tcov1)
+        add5 = self.elu(torch.add(batch5,tcov1))
+
+        tcov2 = self.Tconv2(torch.cat([cnn3,add5],dim=1))
+        batch6= self.tbn2(tcov2)
+        add6 = self.elu(torch.add(batch6,tcov2))
+         
+        tcov3 = self.Tconv3(torch.cat([cnn2,add6],dim=1))
+        batch7 = self.tbn3(tcov3)
+        add7 = self.elu(torch.add(batch7,tcov3))
+        
+        tcov4 =self.Tconv4(torch.cat([cnn1,add7],dim=1))
+        batch8 = self.tbn4(tcov4)
+        add8 = self.elu(torch.add(batch8,tcov4))
+        
+        x = self.out(torch.cat([pad,add8],dim=1))        
+
+        #Corp the padding
+        out = x[:,
+                :,
+                self.padding:-self.padding,
+                self.padding:-self.padding]
+        
+        return out
+
+
+class FCN_4(nn.Module):
+    def __init__(self, height,width,channels,knsize,padding) -> None:
+        super(FCN_4,self).__init__()
+        self.height,self.width,self.channels = height,width,channels
+        self.knsize = knsize
+        self.padding = padding
+
+        self.conv1 = nn.Conv2d(in_channels=self.channels,out_channels=64,kernel_size=5,padding="same")
+        self.conv2 = nn.Conv2d(in_channels=64,out_channels=128,kernel_size=self.knsize,padding="same")
+        self.conv3 = nn.Conv2d(in_channels=128,out_channels=256,kernel_size=self.knsize,padding="same")
+        self.conv4 = nn.Conv2d(in_channels=256,out_channels=128,kernel_size=self.knsize,padding="same")
+        self.conv5 = nn.Conv2d(in_channels=128,out_channels=64,kernel_size=self.knsize,padding="same")
+
+        self.out = nn.ConvTranspose2d(in_channels=64,out_channels=1,kernel_size=1)
+
+        self.initial_norm = nn.BatchNorm2d(self.channels,eps=1e-3,momentum=0.99)
+        self.bn1 = nn.BatchNorm2d(64,eps=1e-3,momentum=0.99)  
+        self.bn2 = nn.BatchNorm2d(128,eps=1e-3,momentum=0.99)  
+        self.bn3 = nn.BatchNorm2d(256,eps=1e-3,momentum=0.99)  
+        self.bn4 = nn.BatchNorm2d(128,eps=1e-3,momentum=0.99)  
+
+    def forward(self,input):
+        import torch.nn.functional as F
+        x = periodic_padding(input,self.padding)
+        x = self.initial_norm(x)
+        x = self.conv1(x)
+        x =F.elu(self.bn1(x))
+        x = self.conv2(x)
+        x =F.elu(self.bn2(x))
+        x = self.conv3(x)
+        x =F.elu(self.bn3(x))
+        x = self.conv4(x)
+        x =F.elu(self.bn4(x))
+        x = self.conv5(x)
+        x = self.out(x)
+        
+        return x[:,
+                :,
+                self.padding:-self.padding,
+                self.padding:-self.padding
+                ]
+
+class FCN_41(nn.Module):
+    def __init__(self, height,width,channels,knsize,padding) -> None:
+        super(FCN_41,self).__init__()
+        self.height,self.width,self.channels = height,width,channels
+        self.knsize = knsize
+        self.padding = padding
+
+        self.conv1 = nn.Conv2d(in_channels=self.channels,out_channels=64,kernel_size=5,padding="same")
+        self.conv2 = nn.Conv2d(in_channels=64,out_channels=128,kernel_size=self.knsize,padding="same")
+        self.conv3 = nn.Conv2d(in_channels=128,out_channels=256,kernel_size=self.knsize,padding="same")
+        self.conv4 = nn.Conv2d(in_channels=256,out_channels=128,kernel_size=self.knsize,padding="same")
+        self.conv5 = nn.Conv2d(in_channels=128,out_channels=64,kernel_size=self.knsize,padding="same")
+
+        self.out = nn.Conv2d(in_channels=64+self.channels,out_channels=1,kernel_size=1)
+
+        self.initial_norm = nn.BatchNorm2d(self.channels,eps=1e-3,momentum=0.99)
+        self.bn1 = nn.BatchNorm2d(64,eps=1e-3,momentum=0.99)  
+        self.bn2 = nn.BatchNorm2d(128,eps=1e-3,momentum=0.99)  
+        self.bn3 = nn.BatchNorm2d(256,eps=1e-3,momentum=0.99)  
+        self.bn4 = nn.BatchNorm2d(128,eps=1e-3,momentum=0.99)  
+    
+    def forward(self,input):
+        import torch.nn.functional as F
+        x = periodic_padding(input,self.padding)
+        x = self.initial_norm(x)
+        x = self.conv1(x)
+        x =F.elu(self.bn1(x))
+        x = self.conv2(x)
+        x =F.elu(self.bn2(x))
+        x = self.conv3(x)
+        x =F.elu(self.bn3(x))
+        x = self.conv4(x)
+        x =F.elu(self.bn4(x))
+        x = self.conv5(x)
+        x = self.out(torch.cat([x,periodic_padding(input,self.padding)],dim=1))
+        
+        return x[:,
+                :,
+                self.padding:-self.padding,
+                self.padding:-self.padding
+                ]
+
+
+
+class Block(nn.Module):
+    def __init__(self,in_channel,knsize) -> None:
+        super(Block,self).__init__()
+        self.conv_block1 = nn.Sequential(nn.Conv2d(in_channel,in_channel,knsize,padding="same"),
+                                        nn.BatchNorm2d(in_channel,eps=1e-3,momentum=0.99),
+                                        nn.ELU())
+        self.conv_block2 = nn.Sequential(
+                                            nn.Conv2d(in_channel,in_channel,knsize,padding="same"),
+                                            nn.BatchNorm2d(in_channel,eps=1e-3,momentum=0.99),
+                                        )
+        self.elu = nn.ELU()
+    def forward(self,x):
+        res = x 
+        x = self.conv_block1(x)
+        x = self.conv_block2(x)
+        x = x + res
+        return self.elu(x)        
+
+
+class Res4(nn.Module):
+    def __init__(self, height,width,channels,knsize,padding) -> None:
+        super(Res4,self).__init__()
+        self.height,self.width,self.channels = height,width,channels
+        self.knsize = knsize
+        self.padding = padding
+
+        self.initial_norm = nn.BatchNorm2d(self.channels,eps=1e-3,momentum=0.99)
+        self.conv1 = nn.Conv2d(self.channels,64,kernel_size=5,padding="same")
+        self.block1 = Block(64,knsize=5)
+        
+        self.conv2 = nn.Conv2d(64,128,kernel_size=knsize,padding="same")
+        self.block2 = Block(128,knsize=self.knsize)
+        
+        self.conv3 = nn.Conv2d(128,256,kernel_size=knsize,padding="same")
+        self.block3 = Block(256,knsize=self.knsize)
+
+        self.conv4 = nn.Conv2d(256,256,kernel_size=knsize,padding="same")
+        self.block4 = Block(256,knsize=self.knsize)
+        
+        self.conv5 = nn.Conv2d(256,128,kernel_size=knsize,padding="same")
+        self.block5 = Block(128,knsize=self.knsize)
+        
+        self.out = nn.Conv2d(128,1,kernel_size=1)
+        # self.block4 = Block(128,knsize=self.knsize)
+        
+         
+    
+    def forward(self,x):
+        x = self.initial_norm(periodic_padding(x,self.padding))
+        x = self.conv1(x)
+        x = self.block1(x)
+        x = self.conv2(x)
+        x = self.block2(x)
+        x = self.conv3(x)
+        x = self.block3(x)
+
+        x = self.conv4(x)
+        x = self.block4(x)
+        x = self.conv5(x)
+        x = self.block5(x)
+        x = self.out(x)
+
+        return x[:,
+                :,
+                self.padding:-self.padding,
+                self.padding:-self.padding
+                ]

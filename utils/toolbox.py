@@ -30,6 +30,7 @@ def Name_Checkpoint(y_plus,var,target,normalized,EPOCH,model_name:None):
         target: list of target
         normalized: boolean 
         EPOCH: number of epoch for training
+        model_name: Default = None, used for testing model
     output:
         name of modelcheck point, format as .pt
     """
@@ -39,7 +40,7 @@ def Name_Checkpoint(y_plus,var,target,normalized,EPOCH,model_name:None):
     if model_name is None:
         denotes = name+"_EPOCH="+str(EPOCH)+".pt"
     else:
-        denotes = name+model_name+"_EPOCH="+str(EPOCH)+".pt"
+        denotes = name+"_"+model_name+"_EPOCH="+str(EPOCH)+".pt"
     date_loc=os.path.join(root_dir,str(datetime.now().date()))
     if os.path.exists(date_loc) is False:
         os.mkdir(date_loc)
