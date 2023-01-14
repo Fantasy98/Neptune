@@ -17,12 +17,14 @@ target=['pr0.025_flux']
 normalized=False
 y_plus=30
 EPOCH = 100
+model_name = "FCN"
 # Test_Eval(model,EPOCH,y_plus,var,target,normalized,device)
-pred_dir = pred_save_dir(EPOCH,y_plus,var,target,normalized)
+pred_dir = pred_save_dir(EPOCH,y_plus,var,target,normalized,model_name)
 
 train_loss = checkpoint["loss"]
+print(train_loss[-1])
 val_loss = checkpoint["val_loss"]
-fig_dir = Save_Plot_dir(EPOCH,y_plus,var,target,normalized)
+fig_dir = Save_Plot_dir(EPOCH,y_plus,var,target,normalized,model_name)
 loss_fig  = os.path.join(fig_dir,"Loss")
 Loss_Plot(train_loss,val_loss,loss_fig)
 
@@ -32,7 +34,7 @@ fluct_error = np.load(os.path.join(pred_dir,"fluct.npy"))
 
 
 Scatter_Plot(glob_error,rms_error,fluct_error,
-               EPOCH,y_plus,var,target,normalized)
+               EPOCH,y_plus,var,target,normalized,model_name)
 
 preds_array = np.load(os.path.join(pred_dir,"pred.npy"))
 target_array=np.load(os.path.join(pred_dir,"y.npy"))

@@ -77,10 +77,12 @@ class FCN_Pad_Xaiver_CBAM(nn.Module):
         # x = self.out(x)
 
         tconv1 = (self.Tconv1(torch.concat([cnn4,batch5],dim=1)))
+        # batch6 = self.tcb1(tconv1)
         batch6 = self.elu(self.tbn1(tconv1))
         batch6 = self.tcb1(batch6)
 
         tconv2 = (self.Tconv2(torch.concat([cnn3,batch6],dim=1)))
+        # batch7 = self.tcb2(tconv2)
         batch7 =self.elu(self.tbn2(tconv2))
         batch7 = self.tcb2(batch7)
         
