@@ -74,7 +74,7 @@ def periodic_padding(input:torch.Tensor,padding:int):
 # Model Training
 #############################################
 class EarlyStopping():
-    def __init__(self,patience=5,tol=0):
+    def __init__(self,patience=10,tol=0):
         """
         input: 
             patience : how many epochs to wait before stopping 

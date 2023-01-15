@@ -4,7 +4,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DataParallel
 from utils.networks import Init_Conv
-from utils.newnet import FCN_Pad_Xaiver_CBAM
+from utils.newnet import FCN_Pad_Xaiver_CBAM2
 from utils.datas import slice_dir
 from utils.train_utils import fit, validation
 from utils.toolbox import EarlyStopping, LRScheduler,Name_Checkpoint
@@ -30,7 +30,7 @@ parser.add_argument("--early-stopping",dest="early_stopping",action="store_true"
 args = vars(parser.parse_args())
 ################
 HEIGHT=256;WIDTH = 256; CHANNELS = 4; KNSIZE=3; padding = 8
-model =FCN_Pad_Xaiver_CBAM(HEIGHT,WIDTH,CHANNELS,KNSIZE,padding)
+model =FCN_Pad_Xaiver_CBAM2(HEIGHT,WIDTH,CHANNELS,KNSIZE,padding)
 model.apply(Init_Conv)
 if torch.cuda.device_count() > 1:
     print("There are ", torch.cuda.device_count(), "GPUs!")
@@ -66,7 +66,7 @@ val_dl = DataLoader(torch.load(valid_path+"/validation.pt"),batch_size=batch_siz
 ###########
 
 EPOCH = 100
-model_dir = Name_Checkpoint(y_plus,var,target,normalized,EPOCH,model_name="CBAM")
+model_dir = Name_Checkpoint(y_plus,var,target,normalized,EPOCH,model_name="CBAM2")
 print(f"The model will be saved to:\n {model_dir}")
 
 
@@ -109,7 +109,7 @@ for epoch in range(EPOCH):
         if early_stopping.early_stop:
             break
 
-model_dir = Name_Checkpoint(y_plus,var,target,normalized,epoch,model_name="CBAM")
+model_dir = Name_Checkpoint(y_plus,var,target,normalized,epoch,model_name="CBAM2")
 print(f"The model will be saved to:\n {model_dir}") 
    
 
