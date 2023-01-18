@@ -23,7 +23,7 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device,model_name:None):
     from torch.utils.data import DataLoader
     from utils.datas import slice_dir
     from utils.toolbox import NameIt
-    from utils.metrics import Glob_error,RMS_error,Fluct_error
+    from utils.metrics import Glob_error,RMS_error,Fluct_error,ERS
     from tqdm import tqdm
     import numpy as np
     """
@@ -42,6 +42,7 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device,model_name:None):
         Glob_error: np array of all glob error
         Rms_error: np array of all RMS error
         Fluct_error: np array of all Fluctuation error
+        ers_error: Pixel-wise Root square error 
         pred: np array of all prediction snapshots
     """
     model.eval()
@@ -53,6 +54,7 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device,model_name:None):
     RMSErrors = []
     GlobErrors = []
     FluctErrors = []
+    Root_Sqrt_Error = []
     preds = []
     targets = []
     with torch.no_grad():
@@ -65,12 +67,13 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device,model_name:None):
             rms_error = RMS_error(pred,y)
             glb_error = Glob_error(pred,y)
             fluct_error = Fluct_error(pred,y)
-        
+            ers = ERS(pred,y)
             RMSErrors.append(rms_error)
             GlobErrors.append(glb_error)
             FluctErrors.append(fluct_error)
             preds.append(pred)
             targets.append(y)
+            Root_Sqrt_Error.append(ers)
     
     save_path = pred_save_dir(EPOCH,y_plus,var,target,normalized,model_name)
     
@@ -91,15 +94,61 @@ def Test_Eval(model,EPOCH,y_plus,var,target,normalized,device,model_name:None):
     np.save(os.path.join(save_path,"pred.npy"),Pred_array)
     print(f"Prediction array saved, shape is {Pred_array.shape}")
 
+    ers_array = np.array(Root_Sqrt_Error)
+    np.save(os.path.join(save_path,"ers.npy"),ers_array)
+    print(f"Root sqrt error array saved, shape is {ers_array.shape}")
     y_array = np.array(targets)
     np.save(os.path.join(save_path,"y.npy"),y_array)
     print(f"Ground Truth array saved, shape is {y_array.shape}")
-            
-
-
-
-
-
+    
+def Grad_Eval(model,EPOCH,y_plus,var,target,normalized,device,model_name:None):
+    import torch
+    import os
+    from torch.utils.data import DataLoader
+    from utils.datas import slice_dir
+    from utils.toolbox import NameIt
+    from utils.metrics import Glob_error,RMS_error,Fluct_error,ERS
+    from tqdm import tqdm
+    import numpy as np
+    """
+    Evaluate gradientamp for mean of prediction 
+    input: 
+        model: the trained model
+        EPOCH: trained epoch corresponding to the model
+        y_plus:value of wall distance
+        var: list of input features
+        target: list of targets
+        normalized: boolean normalized or not 
+        device: name of cuda device to use
+        model_name: name of model 
+    output:
+        A dirct of all results
+        Glob_error: np array of all glob error
+        Rms_error: np array of all RMS error
+        Fluct_error: np array of all Fluctuation error
+        ers_error: Pixel-wise Root square error 
+        pred: np array of all prediction snapshots
+    """
+    model.eval()
+    print("INFO: Test data evaluating !")
+    root_path = "/storage3/yuning/thesis/tensor/"
+    test_path = slice_dir(root_path,y_plus,var,target,"test",normalized)
+    print(f"Data loaded from: \n {test_path}")
+    test_dl = DataLoader(torch.load(test_path+"/test.pt"),batch_size=1,shuffle=True)
+    Sal = []
+    for batch in tqdm(test_dl):
+            x,y = batch
+            x = x.float().to(device); y = y.float().squeeze().numpy()
+            x.requires_grad = True
+            pred = model(x)
+            mean_pred = pred[:,:,128,128]
+            mean_pred.backward()
+            saliency = x.grad[0]
+            Sal.append(saliency)
+    Saliency = np.array([i.cpu().numpy() for i in Sal])
+    save_path = pred_save_dir(EPOCH,y_plus,var,target,normalized,model_name)
+    np.save(os.path.join(save_path,"grad.npy"),Saliency)
+    print(f"Rms error array saved, shape is {Saliency.shape}")
 
 
 

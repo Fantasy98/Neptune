@@ -1,7 +1,7 @@
 import torch 
 import os
 from utils.prediction import Test_Eval,pred_save_dir
-from utils.plots import Plot_2D_snapshots,PSD_single,Loss_Plot,Scatter_Plot,Save_Plot_dir
+from utils.plots import Plot_2D_snapshots,PSD_single,Loss_Plot,Scatter_Plot,RSE_Surface,Save_Plot_dir
 import numpy as np
 import matplotlib.pyplot as plt 
 from scipy import stats
@@ -32,6 +32,7 @@ glob_error = np.load(os.path.join(pred_dir,"glob.npy"))
 rms_error = np.load(os.path.join(pred_dir,"rms.npy"))
 fluct_error = np.load(os.path.join(pred_dir,"fluct.npy"))
 
+root_squred_error = np.load(os.path.join(pred_dir,"ers.npy"))
 
 Scatter_Plot(glob_error,rms_error,fluct_error,
                EPOCH,y_plus,var,target,normalized,model_name)
@@ -59,10 +60,12 @@ Plot_2D_snapshots(target_fluct,os.path.join(fig_dir,"target_fluct_avg"))
 
 snap_pred = preds_array[0,:,:]
 snap_target = target_array[0,:,:]
-rms_diff = np.sqrt((snap_pred - snap_target)**2)
+rms_diff = 100*np.abs(snap_pred - snap_target)/np.mean(target_array)
 Plot_2D_snapshots(snap_pred,os.path.join(fig_dir,"pred_snap"))
 Plot_2D_snapshots(snap_target,os.path.join(fig_dir,"target_snap"))
 Plot_2D_snapshots(rms_diff,os.path.join(fig_dir,"diff_snap"))
 
 
-
+RSE_Surface(np.mean(root_squred_error,axis=0),os.path.join(fig_dir,"root_sqrt_surf"))
+from utils.metrics import ERS
+RSE_Surface(ERS(pred_mean,target_mean),os.path.join(fig_dir,"root_sqrt_surf_mean"))
